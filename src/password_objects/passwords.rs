@@ -28,6 +28,16 @@ impl Passwords {
         self.passwords.iter().find(|p| p.get_name() == name)
     }
 
+    pub fn set_password(&mut self, name: &str, value: String) {
+        if let Some(_password) = self.get_password(name) {
+            for password in &mut self.passwords {
+                if password.get_name() == name {
+                    password.set_value(value.clone());
+                }
+            }
+        }
+    }
+
     // pub fn get_passwords(&self, name: &str) -> Option<&Password> {
     //     for password in &self.passwords {
     //         if password.get_name() == name {

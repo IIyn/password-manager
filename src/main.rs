@@ -5,7 +5,6 @@ use {password_objects::password, password_objects::passwords};
 use {save::file::read_password_file, save::file::write_password_file};
 
 fn main() {
-    // get args
     let args: Vec<String> = std::env::args().collect();
     assert!(args.len() > 1);
 
@@ -13,43 +12,28 @@ fn main() {
 }
 
 fn process_args(args: Vec<String>) {
-    let mut test_passwords = read_password_file();
-
     if args[1] == "--show" || args[1] == "-s" {
-        println!(
-            "List of passwords saved :\n{}",
-            test_passwords.get_passwords()
-        );
+        show_passwords();
     } else if args[1] == "--add-password" || args[1] == "-a" {
-        println!("Enter the name of the password : ");
-        let mut name = String::new();
-        io::stdin()
-            .read_line(&mut name)
-            .expect("Failed to read line");
-        println!("Enter the password : ");
-        let password = rpassword::read_password().unwrap();
-        let password_to_insert =
-            password::Password::new(name.trim().to_string(), password.trim().to_string());
-        test_passwords.add(password_to_insert);
-        write_password_file(test_passwords);
+        add_password();
     } else if args[1] == "--generate-password" || args[1] == "-g" {
-        println!("Enter the name of the password : ");
-        let mut name = String::new();
-        io::stdin()
-            .read_line(&mut name)
-            .expect("Failed to read line");
-        let password_to_insert =
-            password::Password::new(name.trim().to_string(), password::generate_password());
-        println!("Password generated successfully !");
-        test_passwords.add(password_to_insert);
-        write_password_file(test_passwords);
-    } else if args[1] == "--get-password" && !args[2].is_empty() {
-        let password_to_get = test_passwords.get_password(&args[2].to_string());
-        if password_to_get.is_some() {
-            println!("Password : {}", password_to_get.unwrap().get_value());
-        } else {
-            println!("Password not found");
-        }
+        generate_password();
+    } else if (args[1] == "--copy-password" || args[1] == "-c") && !args[2].is_empty() {
+        copy_password_clipboard(&args[2]);
+    } else if args[1] == "--edit-password" || args[1] == "-e" {
+        edit_password();
+    } else if args[1] == "--help" || args[1] == "-h" {
+        println!(
+            "
+        If using cargo to run the project, add -- before the arguments, like this :
+        cargo run -- --show or cargo run -- --s
+        --show, -s : Show all passwords saved
+        --add-password, -a : Add a password
+        --generate-password, -g : Generate a password
+        --copy-password, -c : Copy a password to clipboard
+        --help, -h : Show this help
+        "
+        );
     } else {
         print!("Unknown command : ");
         for i in 1..args.len() {
@@ -57,4 +41,80 @@ fn process_args(args: Vec<String>) {
         }
         println!();
     }
+}
+
+fn show_passwords() {
+    let passwords_in_file = read_password_file();
+    println!(
+        "List of passwords saved :\n{}",
+        passwords_in_file.get_passwords()
+    );
+}
+
+fn add_password() {
+    let mut passwords_in_file = read_password_file();
+    println!("Enter the name of the password : ");
+    let name = read_input();
+    println!("Enter the password : ");
+    let password = read_password();
+    let password_to_insert =
+        password::Password::new(name.trim().to_string(), password.trim().to_string());
+    passwords_in_file.add(password_to_insert);
+    write_password_file(passwords_in_file);
+}
+
+fn edit_password() {
+    let mut passwords_in_file = read_password_file();
+    println!("Enter the name of the password : ");
+    let name = read_input();
+    let password_to_edit = passwords_in_file.get_password(&name.trim().to_string());
+    if password_to_edit.is_some() {
+        println!("Enter the new password : ");
+        let new_password = read_password();
+        passwords_in_file.set_password(&name, new_password);
+        write_password_file(passwords_in_file);
+    } else {
+        println!("Password not found");
+    }
+}
+
+fn generate_password() {
+    let mut passwords_in_file = read_password_file();
+    println!("Enter the name of the password : ");
+    let name = read_input();
+    let password_to_insert =
+        password::Password::new(name.trim().to_string(), password::generate_password());
+    println!("Password generated successfully !");
+    passwords_in_file.add(password_to_insert);
+    write_password_file(passwords_in_file);
+}
+
+fn copy_password_clipboard(argument: &String) {
+    let passwords_in_file = read_password_file();
+    let password_to_get = passwords_in_file.get_password(&argument.to_string());
+    if password_to_get.is_some() {
+        println!("Password : {}", password_to_get.unwrap().get_value());
+    } else {
+        println!("Password not found");
+    }
+}
+
+fn read_input() -> String {
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read line");
+    input
+}
+
+fn read_password() -> String {
+    rpassword::read_password().unwrap()
+}
+
+fn check_master_password() {
+    todo!("Check master password");
+}
+
+fn copy_string_to_clipboard() {
+    todo!("Copy string to clipboard");
 }
