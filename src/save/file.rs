@@ -1,4 +1,5 @@
 use crate::passwords::Passwords;
+use rand::Rng;
 use std::fs;
 
 const PASSWORDS_FILE: &str = "passwords.txt";
@@ -43,16 +44,33 @@ pub fn read_password_file() -> Passwords {
 
 fn encrypt_passwords(text: &str) -> String {
     let mut encrypted_text = String::new();
+    let mut rng = rand::thread_rng();
+    let mut i = 0;
+    while i < 150 {
+        let random_number = rng.gen_range(0..94);
+        let random_char = (random_number + 33) as u8 as char;
+        // add to beginning of string
+        encrypted_text.insert(0, random_char);
+        i += 1;
+    }
     for c in text.chars() {
-        encrypted_text.push((c as u8 + 1) as char);
+        encrypted_text.push((c as u8 + 132) as char);
+    }
+    i = 0;
+    while i < 150 {
+        let random_number = rng.gen_range(0..94);
+        let random_char = (random_number + 33) as u8 as char;
+        encrypted_text.push(random_char);
+        i += 1;
     }
     encrypted_text
 }
 
 fn decrypt_passwords(text: &str) -> String {
     let mut decrypted_text = String::new();
-    for c in text.chars() {
-        decrypted_text.push((c as u8 - 1) as char);
+
+    for c in text[150..text.len() - 150].chars() {
+        decrypted_text.push((c as u8 - 132) as char);
     }
     decrypted_text
 }
