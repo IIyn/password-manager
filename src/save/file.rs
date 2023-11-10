@@ -1,8 +1,10 @@
 use crate::passwords::Passwords;
+use bcrypt::{hash, verify};
 use rand::Rng;
 use std::fs;
 
-const PASSWORDS_FILE: &str = "passwords.txt";
+const PASSWORDS_FILE: &str = ".MOBJuelXwhUDRsP";
+pub const MASTER_PASSWORD_FILE: &str = ".XwrxWOpRgHZywtx";
 
 fn create_password_file() {
     let home_dir = std::env::var("HOME").unwrap();
@@ -73,4 +75,22 @@ fn decrypt_passwords(text: &str) -> String {
         decrypted_text.push((c as u8 - 132) as char);
     }
     decrypted_text
+}
+
+pub fn hash_master_password(password: String) {
+    let hashed = hash(password, 4).expect("Unable to hash password");
+    let master_password_file =
+        std::env::var("HOME").unwrap() + "/.password_manager/" + MASTER_PASSWORD_FILE;
+    if !std::path::Path::new(&master_password_file).exists() {
+        fs::File::create(&master_password_file).expect("Unable to create file");
+    }
+    fs::write(master_password_file, hashed).expect("Unable to write file");
+}
+
+pub fn verify_master_password(password: String) -> bool {
+    let master_password_file =
+        std::env::var("HOME").unwrap() + "/.password_manager/" + MASTER_PASSWORD_FILE;
+    let hashed = fs::read_to_string(master_password_file).expect("Unable to read file");
+    let is_valid = verify(password, &hashed).expect("Unable to verify password");
+    is_valid
 }

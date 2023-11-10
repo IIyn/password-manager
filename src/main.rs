@@ -1,8 +1,11 @@
 mod password_objects;
 mod save;
-use std::io;
-use {password_objects::password, password_objects::passwords};
-use {save::file::read_password_file, save::file::write_password_file};
+use password_objects::{password, passwords};
+use save::file::{
+    hash_master_password, read_password_file, verify_master_password, write_password_file,
+    MASTER_PASSWORD_FILE,
+};
+use std::{fs, io};
 
 fn read_input() -> String {
     let mut input = String::new();
@@ -14,6 +17,19 @@ fn read_input() -> String {
 
 fn read_password() -> String {
     rpassword::read_password().unwrap()
+}
+
+fn ask_master_password() -> String {
+    println!("Enter your master password : ");
+    read_password()
+}
+
+fn verify_and_run<F: FnOnce(Option<&String>)>(callback: F, arg: Option<&String>) {
+    if verify_master_password(ask_master_password()) {
+        callback(arg);
+    } else {
+        println!("Wrong password")
+    }
 }
 
 fn show_passwords() {
@@ -72,49 +88,60 @@ fn edit_password() {
     }
 }
 
-fn check_master_password() {
-    todo!("Check master password");
-}
-
 fn copy_string_to_clipboard() {
     todo!("Copy string to clipboard");
 }
 
 fn process_args(args: Vec<String>) {
-    if args[1] == "--show" || args[1] == "-s" {
-        show_passwords();
-    } else if args[1] == "--add-password" || args[1] == "-a" {
-        add_password();
-    } else if args[1] == "--generate-password" || args[1] == "-g" {
-        generate_password();
-    } else if (args[1] == "--copy-password" || args[1] == "-c") && !args[2].is_empty() {
-        copy_password_clipboard(&args[2]);
-    } else if args[1] == "--edit-password" || args[1] == "-e" {
-        edit_password();
-    } else if args[1] == "--help" || args[1] == "-h" {
-        println!(
-            "
-        If using cargo to run the project, add -- before the arguments, like this :
-        cargo run -- --show or cargo run -- --s
-        --show, -s : Show all passwords saved
-        --add-password, -a : Add a password
-        --generate-password, -g : Generate a password
-        --copy-password, -c : Copy a password to clipboard
-        --help, -h : Show this help
-        "
-        );
+    let password_path = std::env::var("HOME").unwrap() + "/.password_manager/" + MASTER_PASSWORD_FILE;
+    if !std::path::Path::new(&password_path).exists() {
+        println!("No password file found, write your master password : ");
+        let master_password = read_password();
+        hash_master_password(master_password);
+    } else 
+    if fs::read_to_string(&password_path).unwrap().is_empty() {
+        println!("No password file found, write your master password : ");
+        let master_password = read_password();
+        hash_master_password(master_password);
     } else {
-        print!("Unknown command : ");
-        for i in 1..args.len() {
-            print!("{} ", args[i]);
+        if args[1] == "--show" || args[1] == "-s" {
+            verify_and_run(|_arg| show_passwords(), None);
+        } else if args[1] == "--add-password" || args[1] == "-a" {
+            verify_and_run(|_arg| add_password(), None);
+        } else if args[1] == "--generate-password" || args[1] == "-g" {
+            verify_and_run(|_arg| generate_password(), None);
+        } else if (args[1] == "--copy-password" || args[1] == "-c") {
+            if args[2].is_empty() {
+                println!("No password name given. Use --copy-password <password_name>");
+                return;
+            }
+            verify_and_run(|_arg| copy_password_clipboard(_arg.unwrap()), Some(&args[2]));
+        } else if args[1] == "--edit-password" || args[1] == "-e" {
+            verify_and_run(|_arg| edit_password(), None);
+        } else if args[1] == "--help" || args[1] == "-h" {
+            println!(
+                "
+            If using cargo to run the project, add -- before the arguments, like this :
+            cargo run -- --show or cargo run -- --s
+            --show, -s : Show all passwords saved
+            --add-password, -a : Add a password
+            --generate-password, -g : Generate a password
+            --copy-password, -c : Copy a password to clipboard
+            --help, -h : Show this help
+            "
+            );
+        } else {
+            print!("Unknown command : ");
+            for i in 1..args.len() {
+                print!("{} ", args[i]);
+            }
+            println!("Use --help to see all commands");
         }
-        println!();
     }
 }
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     assert!(args.len() > 1);
-
     process_args(args);
 }
