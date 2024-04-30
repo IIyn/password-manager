@@ -6,6 +6,7 @@ use save::file::{
     MASTER_PASSWORD_FILE,
 };
 use std::{fs, io};
+use arboard::Clipboard;
 
 fn read_input() -> String {
     let mut input = String::new();
@@ -67,7 +68,10 @@ fn copy_password_clipboard(argument: &String) {
     let passwords_in_file = read_password_file();
     let password_to_get = passwords_in_file.get_password(&argument.to_string());
     if password_to_get.is_some() {
-        println!("Password : {}", password_to_get.unwrap().get_value());
+        let mut clipboard = Clipboard::new().unwrap();
+        println!("Clipboard text was: {}", clipboard.get_text().unwrap());
+        clipboard.set_text(password_to_get.unwrap().get_value()).unwrap();
+        println!("Password copied to clipboard !");
     } else {
         println!("Password not found");
     }
@@ -86,10 +90,6 @@ fn edit_password() {
     } else {
         println!("Password not found");
     }
-}
-
-fn copy_string_to_clipboard() {
-    todo!("Copy string to clipboard");
 }
 
 fn process_args(args: Vec<String>) {
