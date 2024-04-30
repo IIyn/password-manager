@@ -69,7 +69,6 @@ fn copy_password_clipboard(argument: &String) {
     let password_to_get = passwords_in_file.get_password(&argument.to_string());
     if password_to_get.is_some() {
         let mut clipboard = Clipboard::new().unwrap();
-        println!("Clipboard text was: {}", clipboard.get_text().unwrap());
         clipboard.set_text(password_to_get.unwrap().get_value()).unwrap();
         println!("Password copied to clipboard !");
     } else {
