@@ -1,12 +1,12 @@
 mod password_objects;
 mod save;
+use arboard::Clipboard;
 use password_objects::{password, passwords};
 use save::file::{
     hash_master_password, read_password_file, verify_master_password, write_password_file,
     MASTER_PASSWORD_FILE,
 };
 use std::{fs, io};
-use arboard::Clipboard;
 
 fn read_input() -> String {
     let mut input = String::new();
@@ -69,21 +69,35 @@ fn copy_password_clipboard(argument: &String) {
     let password_to_get = passwords_in_file.get_password(&argument.to_string());
     if password_to_get.is_some() {
         let mut clipboard = Clipboard::new().unwrap();
-        clipboard.set_text(password_to_get.unwrap().get_value()).unwrap();
+        clipboard
+            .set_text(password_to_get.unwrap().get_value())
+            .unwrap();
         println!("Password copied to clipboard !");
     } else {
         println!("Password not found");
     }
 }
 
+fn copy_password(argument: &String) {
+    let passwords_in_file: passwords::Passwords = read_password_file();
+    let password_to_get: Option<&password::Password> =
+        passwords_in_file.get_password(&argument.to_string());
+    if password_to_get.is_some() {
+        println!("Password : {}", password_to_get.unwrap().get_value());
+    } else {
+        println!("Password not found");
+    }
+}
+
 fn edit_password() {
-    let mut passwords_in_file = read_password_file();
+    let mut passwords_in_file: passwords::Passwords = read_password_file();
     println!("Enter the name of the password : ");
-    let name = read_input();
-    let password_to_edit = passwords_in_file.get_password(&name.trim().to_string());
+    let name: String = read_input();
+    let password_to_edit: Option<&password::Password> =
+        passwords_in_file.get_password(&name.trim().to_string());
     if password_to_edit.is_some() {
         println!("Enter the new password : ");
-        let new_password = read_password();
+        let new_password: String = read_password();
         passwords_in_file.set_password(&name, new_password);
         write_password_file(passwords_in_file);
     } else {
@@ -92,15 +106,15 @@ fn edit_password() {
 }
 
 fn process_args(args: Vec<String>) {
-    let password_path = std::env::var("HOME").unwrap() + "/.password_manager/" + MASTER_PASSWORD_FILE;
+    let password_path: String =
+        std::env::var("HOME").unwrap() + "/.password_manager/" + MASTER_PASSWORD_FILE;
     if !std::path::Path::new(&password_path).exists() {
         println!("No password file found, write your master password : ");
-        let master_password = read_password();
+        let master_password: String = read_password();
         hash_master_password(master_password);
-    } else 
-    if fs::read_to_string(&password_path).unwrap().is_empty() {
+    } else if fs::read_to_string(&password_path).unwrap().is_empty() {
         println!("No password file found, write your master password : ");
-        let master_password = read_password();
+        let master_password: String = read_password();
         hash_master_password(master_password);
     } else {
         if args[1] == "--show" || args[1] == "-s" {
@@ -109,12 +123,25 @@ fn process_args(args: Vec<String>) {
             verify_and_run(|_arg| add_password(), None);
         } else if args[1] == "--generate-password" || args[1] == "-g" {
             verify_and_run(|_arg| generate_password(), None);
-        } else if (args[1] == "--copy-password" || args[1] == "-c") {
+        } else if args[1] == "--copy-password" || args[1] == "-c" {
             if args[2].is_empty() {
                 println!("No password name given. Use --copy-password <password_name>");
                 return;
             }
-            verify_and_run(|_arg| copy_password_clipboard(_arg.unwrap()), Some(&args[2]));
+
+            if args[3].is_empty() {
+                verify_and_run(
+                    |_arg: Option<&String>| copy_password_clipboard(_arg.unwrap()),
+                    Some(&args[2]),
+                );
+            } else if args[3] == "--no-clipboard" || args[3] == "-nc" {
+                verify_and_run(
+                    |_arg: Option<&String>| copy_password(_arg.unwrap()),
+                    Some(&args[2]),
+                );
+            } else {
+                println!("Unknown command : {}", args[3]);
+            }
         } else if args[1] == "--edit-password" || args[1] == "-e" {
             verify_and_run(|_arg| edit_password(), None);
         } else if args[1] == "--help" || args[1] == "-h" {
@@ -125,7 +152,7 @@ fn process_args(args: Vec<String>) {
             --show, -s : Show all passwords saved
             --add-password, -a : Add a password
             --generate-password, -g : Generate a password
-            --copy-password, -c : Copy a password to clipboard
+            --copy-password, -c : Copy a password to clipboard + --no-clipboard, -nc : to just show the password
             --help, -h : Show this help
             "
             );
