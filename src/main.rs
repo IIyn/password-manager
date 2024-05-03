@@ -129,7 +129,7 @@ fn process_args(args: Vec<String>) {
                 return;
             }
 
-            if args[3].is_empty() {
+            if args.len() == 3 {
                 verify_and_run(
                     |_arg: Option<&String>| copy_password_clipboard(_arg.unwrap()),
                     Some(&args[2]),
