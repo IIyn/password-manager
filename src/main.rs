@@ -35,73 +35,102 @@ fn verify_and_run<F: FnOnce(Option<&String>)>(callback: F, arg: Option<&String>)
 
 fn show_passwords() {
     let passwords_in_file = read_password_file();
-    println!(
-        "List of passwords saved :\n{}",
-        passwords_in_file.get_passwords()
-    );
+    if passwords_in_file.is_ok() {
+        println!(
+            "List of passwords saved :\n{}",
+            passwords_in_file.unwrap().get_passwords()
+        );
+    } else {
+        println!("No passwords saved");
+    }
 }
 
 fn add_password() {
-    let mut passwords_in_file = read_password_file();
-    println!("Enter the name of the password : ");
-    let name = read_input();
-    println!("Enter the password : ");
-    let password = read_password();
-    let password_to_insert =
-        password::Password::new(name.trim().to_string(), password.trim().to_string());
-    passwords_in_file.add(password_to_insert);
-    write_password_file(passwords_in_file);
+    let passwords_in_file = read_password_file();
+    if passwords_in_file.is_ok() {
+        let mut passwords = passwords_in_file.unwrap();
+        println!("Enter the name of the password : ");
+        let name = read_input();
+        println!("Enter the password : ");
+        let password = read_password();
+        let password_to_insert =
+            password::Password::new(name.trim().to_string(), password.trim().to_string());
+        passwords.add(password_to_insert);
+        write_password_file(passwords);
+    } else {
+        println!("Error while decoding passwords file");
+    }
 }
 
 fn generate_password() {
-    let mut passwords_in_file = read_password_file();
-    println!("Enter the name of the password : ");
-    let name = read_input();
-    let password_to_insert =
-        password::Password::new(name.trim().to_string(), password::generate_password());
-    println!("Password generated successfully !");
-    passwords_in_file.add(password_to_insert);
-    write_password_file(passwords_in_file);
+    let passwords_in_file = read_password_file();
+    if passwords_in_file.is_ok() {
+        let mut passwords = passwords_in_file.unwrap();
+        println!("Enter the name of the password : ");
+        let name = read_input();
+        let password_to_insert =
+            password::Password::new(name.trim().to_string(), password::generate_password());
+        println!("Password generated successfully !");
+        passwords.add(password_to_insert);
+        write_password_file(passwords);
+    } else {
+        println!("Error while decoding passwords file");
+    }
 }
 
 fn copy_password_clipboard(argument: &String) {
     let passwords_in_file = read_password_file();
-    let password_to_get = passwords_in_file.get_password(&argument.to_string());
-    if password_to_get.is_some() {
-        let mut clipboard = Clipboard::new().unwrap();
-        clipboard
-            .set_text(password_to_get.unwrap().get_value())
-            .unwrap();
-        println!("Password copied to clipboard !");
+    if passwords_in_file.is_ok() {
+        let passwords = passwords_in_file.unwrap();
+        let password_to_get = passwords.get_password(&argument.to_string());
+        if password_to_get.is_some() {
+            let mut clipboard = Clipboard::new().unwrap();
+            clipboard
+                .set_text(password_to_get.unwrap().get_value())
+                .unwrap();
+            println!("Password copied to clipboard !");
+        } else {
+            println!("Password not found");
+        }
     } else {
-        println!("Password not found");
+        println!("Error while decoding passwords file");
     }
 }
 
 fn copy_password(argument: &String) {
-    let passwords_in_file: passwords::Passwords = read_password_file();
-    let password_to_get: Option<&password::Password> =
-        passwords_in_file.get_password(&argument.to_string());
-    if password_to_get.is_some() {
-        println!("Password : {}", password_to_get.unwrap().get_value());
+    let passwords_in_file = read_password_file();
+    if passwords_in_file.is_ok() {
+        let passwords = passwords_in_file.unwrap();
+        let password_to_get: Option<&password::Password> =
+            passwords.get_password(&argument.to_string());
+        if password_to_get.is_some() {
+            println!("Password : {}", password_to_get.unwrap().get_value());
+        } else {
+            println!("Password not found");
+        }
     } else {
-        println!("Password not found");
+        println!("Error while decoding passwords file");
     }
 }
 
 fn edit_password() {
-    let mut passwords_in_file: passwords::Passwords = read_password_file();
-    println!("Enter the name of the password : ");
-    let name: String = read_input();
-    let password_to_edit: Option<&password::Password> =
-        passwords_in_file.get_password(&name.trim().to_string());
-    if password_to_edit.is_some() {
-        println!("Enter the new password : ");
-        let new_password: String = read_password();
-        passwords_in_file.set_password(&name, new_password);
-        write_password_file(passwords_in_file);
+    let passwords_in_file = read_password_file();
+    if passwords_in_file.is_ok() {
+        let mut passwords = passwords_in_file.unwrap();
+        println!("Enter the name of the password : ");
+        let name: String = read_input();
+        let password_to_edit: Option<&password::Password> =
+            passwords.get_password(&name.trim().to_string());
+        if password_to_edit.is_some() {
+            println!("Enter the new password : ");
+            let new_password: String = read_password();
+            passwords.set_password(&name, new_password);
+            write_password_file(passwords);
+        } else {
+            println!("Password not found");
+        }
     } else {
-        println!("Password not found");
+        println!("Error while decoding passwords file");
     }
 }
 
